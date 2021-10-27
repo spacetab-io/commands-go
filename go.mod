@@ -1,4 +1,4 @@
-module github.com/spacetab-io/commands
+module github.com/spacetab-io/commands-go
 
 go 1.16
 

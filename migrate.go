@@ -21,9 +21,9 @@ const (
 )
 
 var (
-	// migrateCmd is a github.com/pressly/goose database migrate wrapper command
+	// MigrateCmd is a github.com/pressly/goose database migrate wrapper command
 	// nolint:deadcode,unused,varcheck
-	migrateCmd = &cobra.Command{
+	MigrateCmd = &cobra.Command{
 		Use:       "migrate",
 		Short:     "Database migrations command",
 		ValidArgs: []string{"up", "up-by-one", "up-to", "create", "down", "down-to", "fix", "redo", "reset", "status", "version"},
@@ -33,10 +33,10 @@ var (
 	ErrBadContextValue = errors.New("context value is empty or has wrong type")
 )
 
-// migrateUsage shows command usage.
-// Add it to migrateCmd like migrateCmd.SetUsageFunc(migrateUsage).
+// MigrateUsage shows command usage.
+// Add it to MigrateCmd like MigrateCmd.SetUsageFunc(MigrateUsage).
 // nolint:deadcode,unused
-func migrateUsage(cmd *cobra.Command) error {
+func MigrateUsage(cmd *cobra.Command) error {
 	w := cmd.OutOrStderr()
 	_, err := w.Write([]byte(`Usage:
   <service> migrate [args]
@@ -46,7 +46,7 @@ Args:
   down   migrate last migration down
 `))
 
-	return fmt.Errorf("migrateUsage err: %w", err)
+	return fmt.Errorf("MigrateUsage err: %w", err)
 }
 
 const errStrFormat = "%s %s error: %w"
