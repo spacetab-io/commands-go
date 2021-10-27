@@ -38,15 +38,17 @@ var (
 // nolint:deadcode,unused
 func MigrateUsage(cmd *cobra.Command) error {
 	w := cmd.OutOrStderr()
-	_, err := w.Write([]byte(`Usage:
+	if _, err := w.Write([]byte(`Usage:
   <service> migrate [args]
 
 Args:
   up     migrate all upwards
   down   migrate last migration down
-`))
+`)); err != nil {
+		return fmt.Errorf("MigrateUsage err: %w", err)
+	}
 
-	return fmt.Errorf("MigrateUsage err: %w", err)
+	return nil
 }
 
 const errStrFormat = "%s %s error: %w"
