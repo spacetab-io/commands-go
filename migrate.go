@@ -21,8 +21,7 @@ const (
 )
 
 var (
-	// MigrateCmd is a github.com/pressly/goose database migrate wrapper command
-	// nolint:deadcode,unused,varcheck
+	// MigrateCmd is a github.com/pressly/goose database migrate wrapper command.
 	MigrateCmd = &cobra.Command{
 		Use:       "migrate",
 		Short:     "Database migrations command",
@@ -35,16 +34,24 @@ var (
 
 // MigrateUsage shows command usage.
 // Add it to MigrateCmd like MigrateCmd.SetUsageFunc(MigrateUsage).
-// nolint:deadcode,unused
 func MigrateUsage(cmd *cobra.Command) error {
 	w := cmd.OutOrStderr()
-	if _, err := w.Write([]byte(`Usage:
-  <service> migrate [args]
+	if _, err := w.Write([]byte(fmt.Sprintf(`Usage:
+  %s %s [args]
 
 Args:
-  up     migrate all upwards
-  down   migrate last migration down
-`)); err != nil {
+  create      writes a new blank migration file
+  up          applies all available migrations
+  up-by-one   migrates up by a single version
+  up-to       migrates up to a specific version
+  down        rolls back a single migration from the current version
+  down-to     rolls back migrations to a specific version
+  fix         fixes migrations file name (?)
+  redo        rolls back the most recently applied migration, then runs it again
+  reset       rolls back all migrations
+  status      prints the status of all migrations
+  version     prints the current version of the database
+`, cmd.Parent().Name(), cmd.Name()))); err != nil {
 		return fmt.Errorf("MigrateUsage err: %w", err)
 	}
 
@@ -89,6 +96,9 @@ func migrate(cmd *cobra.Command, args []string) error {
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("migrate SetDialect error: %w", err)
 	}
+
+	// set migrations table from cfg
+	goose.SetTableName(dbCfg.GetMigrationsTableName())
 
 	if err := db.Ping(); err != nil {
 		log.Error().Err(err).Str("dsn", dbCfg.GetDSN()).Msg("fail to ping database")
