@@ -11,13 +11,15 @@ import (
 	"github.com/jackc/pgx/v4/log/zerologadapter"
 	"github.com/jackc/pgx/v4/stdlib"
 	"github.com/pressly/goose"
+	"github.com/spacetab-io/configuration-go/stage"
 	cfgstructs "github.com/spacetab-io/configuration-structs-go"
 	log "github.com/spacetab-io/logs-go/v2"
 	"github.com/spf13/cobra"
 )
 
 const (
-	failureCode = 1
+	failureCode  = 1
+	errStrFormat = "%s %s error: %w"
 )
 
 var (
@@ -58,18 +60,16 @@ Args:
 	return nil
 }
 
-const errStrFormat = "%s %s error: %w"
-
 // migrate is a function for cobra.Command RunE param.
 func migrate(cmd *cobra.Command, args []string) error {
 	method := "migrate"
 
-	envStage, dbCfg, logCfg, appInfo, err := getConfigs(cmd.Context())
+	appStage, dbCfg, logCfg, appInfo, err := getConfigs(cmd.Context())
 	if err != nil {
 		return fmt.Errorf(errStrFormat, method, "getConfig", err)
 	}
 
-	if err := log.Init(envStage, logCfg, appInfo.GetAlias(), appInfo.GetVersion(), os.Stdout); err != nil {
+	if err := log.Init(appStage.String(), logCfg, appInfo.GetAlias(), appInfo.GetVersion(), os.Stdout); err != nil {
 		log.Error().Err(err).Send()
 
 		return fmt.Errorf(errStrFormat, method, "log.Init", err)
@@ -174,31 +174,31 @@ INSERT INTO %s.%s ("version_id", "is_applied", "tstamp") VALUES ('0', 't', NOW()
 }
 
 func getConfigs(ctx context.Context) (
-	string,
+	stage.Interface,
 	cfgstructs.DatabaseCfgInterface,
 	log.Config,
 	cfgstructs.ApplicationInfoCfgInterface,
 	error,
 ) {
-	envStage, ok := ctx.Value("cfg.envStage").(string)
+	appStage, ok := ctx.Value(CommandContextCfgKeyStage).(stage.Interface)
 	if !ok {
-		return "", nil, log.Config{}, nil, fmt.Errorf("%w: stage name (cfg.envStage)", ErrBadContextValue)
+		return nil, nil, log.Config{}, nil, fmt.Errorf("%w: stage name (cfg.envStage)", ErrBadContextValue)
 	}
 
-	dbCfg, ok := ctx.Value("cfg.db").(cfgstructs.DatabaseCfgInterface)
+	dbCfg, ok := ctx.Value(CommandContextCfgKeyDB).(cfgstructs.DatabaseCfgInterface)
 	if !ok {
-		return "", nil, log.Config{}, nil, fmt.Errorf("%w: database config (cfg.db)", ErrBadContextValue)
+		return nil, nil, log.Config{}, nil, fmt.Errorf("%w: database config (cfg.db)", ErrBadContextValue)
 	}
 
-	logCfg, ok := ctx.Value("cfg.log").(log.Config)
+	logCfg, ok := ctx.Value(CommandContextCfgKeyLog).(log.Config)
 	if !ok {
-		return "", nil, log.Config{}, nil, fmt.Errorf("%w: log config (cfg.log)", ErrBadContextValue)
+		return nil, nil, log.Config{}, nil, fmt.Errorf("%w: log config (cfg.log)", ErrBadContextValue)
 	}
 
-	appInfo, ok := ctx.Value("cfg.appInfo").(cfgstructs.ApplicationInfoCfgInterface)
+	appInfoCfg, ok := ctx.Value(CommandContextCfgKeyAppInfo).(cfgstructs.ApplicationInfoCfgInterface)
 	if !ok {
-		return "", nil, log.Config{}, nil, fmt.Errorf("%w: app info config (cfg.appInfo)", ErrBadContextValue)
+		return nil, nil, log.Config{}, nil, fmt.Errorf("%w: app info config (cfg.appInfo)", ErrBadContextValue)
 	}
 
-	return envStage, dbCfg, logCfg, appInfo, nil
+	return appStage, dbCfg, logCfg, appInfoCfg, nil
 }
