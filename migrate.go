@@ -143,10 +143,11 @@ func checkInit(cfg cfgstructs.DatabaseCfgInterface, db *sql.DB) error {
 	create := fmt.Sprintf(
 		`
 CREATE SEQUENCE IF NOT EXISTS %s_id_seq;
-CREATE TABLE %s.%s ("id" int4 NOT NULL DEFAULT nextval('goose_db_version_id_seq'::regclass),"version_id" int8 NOT NULL,"is_applied" bool NOT NULL,"tstamp" timestamp DEFAULT now(),PRIMARY KEY ("id"));
+CREATE TABLE %s.%s ("id" int4 NOT NULL DEFAULT nextval('%s_id_seq'::regclass),"version_id" int8 NOT NULL,"is_applied" bool NOT NULL,"tstamp" timestamp DEFAULT now(),PRIMARY KEY ("id"));
 INSERT INTO %s.%s ("version_id", "is_applied", "tstamp") VALUES ('0', 't', NOW());`,
 		cfg.GetMigrationsTableName(),
 		cfg.GetSchema(),
+		cfg.GetMigrationsTableName(),
 		cfg.GetMigrationsTableName(),
 		cfg.GetSchema(),
 		cfg.GetMigrationsTableName(),
