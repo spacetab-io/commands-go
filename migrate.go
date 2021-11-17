@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"os"
 
@@ -18,25 +17,21 @@ import (
 )
 
 const (
-	failureCode  = 1
-	errStrFormat = "%s %s error: %w"
+	CmdFailureCode  = 1
+	CmdErrStrFormat = "%s %s error: %w"
 )
 
-var (
-	// MigrateCmd is a github.com/pressly/goose database migrate wrapper command.
-	MigrateCmd = &cobra.Command{
-		Use:       "migrate",
-		Short:     "Database migrations command",
-		ValidArgs: []string{"up", "up-by-one", "up-to", "create", "down", "down-to", "fix", "redo", "reset", "status", "version"},
-		Args:      cobra.MinimumNArgs(1),
-		RunE:      migrate,
-	}
-	ErrBadContextValue = errors.New("context value is empty or has wrong type")
-)
+// MigrateCmd is a github.com/pressly/goose database migrate wrapper command.
+var MigrateCmd = &cobra.Command{
+	Use:       "migrate",
+	Short:     "Database migrations command",
+	ValidArgs: []string{"up", "up-by-one", "up-to", "create", "down", "down-to", "fix", "redo", "reset", "status", "version"},
+	Args:      cobra.MinimumNArgs(1),
+	RunE:      migrate,
+}
 
-// MigrateUsage shows command usage.
-// Add it to MigrateCmd like MigrateCmd.SetUsageFunc(MigrateUsage).
-func MigrateUsage(cmd *cobra.Command) error {
+// migrateUsage shows command usage.
+func migrateUsage(cmd *cobra.Command) error {
 	w := cmd.OutOrStderr()
 	if _, err := w.Write([]byte(fmt.Sprintf(`Usage:
   %s %s [args]
@@ -54,7 +49,7 @@ Args:
   status      prints the status of all migrations
   version     prints the current version of the database
 `, cmd.Parent().Name(), cmd.Name()))); err != nil {
-		return fmt.Errorf("MigrateUsage err: %w", err)
+		return fmt.Errorf("migrateUsage err: %w", err)
 	}
 
 	return nil
@@ -66,14 +61,16 @@ func migrate(cmd *cobra.Command, args []string) error {
 
 	appStage, dbCfg, logCfg, appInfo, err := getConfigs(cmd.Context())
 	if err != nil {
-		return fmt.Errorf(errStrFormat, method, "getConfig", err)
+		return fmt.Errorf(CmdErrStrFormat, method, "getConfig", err)
 	}
 
 	if err := log.Init(appStage.String(), logCfg, appInfo.GetAlias(), appInfo.GetVersion(), os.Stdout); err != nil {
 		log.Error().Err(err).Send()
 
-		return fmt.Errorf(errStrFormat, method, "log.Init", err)
+		return fmt.Errorf(CmdErrStrFormat, method, "log.Init", err)
 	}
+
+	log.Info().Msg(appInfo.Summary())
 
 	command := args[0]
 
@@ -83,7 +80,7 @@ func migrate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Error().Err(err).Str("dsn", dbCfg.GetMigrationDSN()).Msg("fail to parse config")
 
-		return fmt.Errorf(errStrFormat, method, "ParseConfig", err)
+		return fmt.Errorf(CmdErrStrFormat, method, "ParseConfig", err)
 	}
 
 	cfg.Logger = zerologadapter.NewLogger(log.Logger().With().CallerWithSkipFrameCount(4).Logger()) // nolint:gomnd
@@ -110,7 +107,7 @@ func migrate(cmd *cobra.Command, args []string) error {
 		if err := db.Close(); err != nil {
 			log.Error().Str("dsn", dbCfg.GetDSN()).Err(err).Msg("fail to close DB connection")
 
-			os.Exit(failureCode)
+			os.Exit(CmdFailureCode)
 		}
 	}()
 
@@ -158,8 +155,7 @@ INSERT INTO %s.%s ("version_id", "is_applied", "tstamp") VALUES ('0', 't', NOW()
 	if t == nil {
 		log.Trace().Msg("goose table doesn't exists. let's create it")
 
-		_, err := db.Exec(create)
-		if err != nil {
+		if _, err := db.Exec(create); err != nil {
 			return fmt.Errorf("checkInit db.Exec error: %w", err)
 		}
 
