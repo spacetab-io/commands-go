@@ -31,7 +31,7 @@ func init() {
 	MigrateCmd.SetUsageFunc(migrateUsage)
 	SeedCmd.SetUsageFunc(seedUsage)
 
-	SeedCmd.AddCommand(seedRunCmd)
-	SeedCmd.AddCommand(seedRunAllCmd)
+	SeedCmd.AddCommand(SeedRunCmd)
+	SeedCmd.AddCommand(SeedRunAllCmd)
 	SeedCmd.AddCommand(seedListCmd)
 }

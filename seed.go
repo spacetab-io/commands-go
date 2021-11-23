@@ -33,11 +33,11 @@ var (
 		Use:  "list",
 		RunE: seedList,
 	}
-	seedRunAllCmd = &cobra.Command{
+	SeedRunAllCmd = &cobra.Command{
 		Use:  "run-all",
 		RunE: seedRunAll,
 	}
-	seedRunCmd = &cobra.Command{
+	SeedRunCmd = &cobra.Command{
 		Use:  "run",
 		Args: cobra.MinimumNArgs(1),
 		RunE: seedRun,
