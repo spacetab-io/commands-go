@@ -9,18 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type SeedsInterface interface {
-	GetMethods() map[string]SeedInterface
-	GetMethod(name string) (SeedInterface, error)
-	SeedsList() []string
-}
-
-type SeedInterface interface {
-	Enabled() bool
-	Name() string
-	Seed() error
-}
-
 // SeedCmd is a database seeding wrapper command.
 var (
 	SeedCmd = &cobra.Command{
@@ -45,7 +33,7 @@ var (
 )
 
 // seedUsage shows seed command usage.
-// Add it to SeedCmd like SeedCmd.SetUsageFunc(seedUsage).
+// Add it to SeedCmd like SeedCmd.SetUsageFunc(SeedUsage).
 func seedUsage(cmd *cobra.Command) error {
 	w := cmd.OutOrStderr()
 	if _, err := w.Write([]byte(fmt.Sprintf(`Usage:
@@ -56,12 +44,13 @@ Args:
   run-all  applies all seeds
   list     shows available seeds list
 `, cmd.Parent().Name(), cmd.Name()))); err != nil {
-		return fmt.Errorf("seedUsage err: %w", err)
+		return fmt.Errorf("SeedUsage err: %w", err)
 	}
 
 	return nil
 }
 
+// seedList returns seeds list.
 func seedList(cmd *cobra.Command, _ []string) error {
 	s, err := getAppSeeder(cmd.Context())
 	if err != nil {
@@ -73,6 +62,7 @@ func seedList(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
+// seedRun Execute exact seed for passed method name.
 func seedRun(cmd *cobra.Command, args []string) error {
 	s, err := getAppSeeder(cmd.Context())
 	if err != nil {
@@ -96,7 +86,7 @@ func seedRun(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// Execute all seeders if no method name is given.
+// seedRunAll Execute all seeds if no method name is given.
 func seedRunAll(cmd *cobra.Command, _ []string) error {
 	s, err := getAppSeeder(cmd.Context())
 	if err != nil {
@@ -117,8 +107,8 @@ func seedRunAll(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func getAppSeeder(ctx context.Context) (SeedsInterface, error) {
-	s, ok := ctx.Value(CommandContextObjectKeySeeder).(SeedsInterface)
+func getAppSeeder(ctx context.Context) (SeederInterface, error) {
+	s, ok := ctx.Value(CommandContextObjectKeySeeder).(SeederInterface)
 	if !ok {
 		return nil, fmt.Errorf("%w: app seed (cfg.appInfo)", ErrBadContextValue)
 	}

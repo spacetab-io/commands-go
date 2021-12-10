@@ -378,8 +378,8 @@ github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d/go.mod h1
 github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9QV7WQ/tjFTllLA=
 github.com/spacetab-io/configuration-go v1.2.0 h1:RDoruNQfe508DpHKj5NaLdtWtCGg5e4gnhD9EOUgQ7Y=
 github.com/spacetab-io/configuration-go v1.2.0/go.mod h1:242FyTS40EpL9c/zv+qjimoWh1TtAPYljZgxMsFJ4wY=
-github.com/spacetab-io/configuration-structs-go v0.0.1 h1:2evzu+CH5oUJS0y6edAlJr1UTRC3oJZG8NoSPQqmI7k=
-github.com/spacetab-io/configuration-structs-go v0.0.1/go.mod h1:inP70vRNRW0euxR3ndNE8/H2qXL3hmQdPkcgRfjj6AA=
+github.com/spacetab-io/configuration-structs-go v0.1.1 h1:LA7up+68aaY3Ghl5wXKQ2DJeDNibZ4gNfK6PfURxH5Q=
+github.com/spacetab-io/configuration-structs-go v0.1.1/go.mod h1:inP70vRNRW0euxR3ndNE8/H2qXL3hmQdPkcgRfjj6AA=
 github.com/spacetab-io/logs-go/v2 v2.1.0 h1:8kRAudrGlqnU8sXzauRlS6uz9UBr5K9zM8g3qjwIuk4=
 github.com/spacetab-io/logs-go/v2 v2.1.0/go.mod h1:or/5vcOpnWRGA2KUJbJ6o+R2WU4XIjc4w7FDBcm7z2I=
 github.com/spf13/afero v1.1.2/go.mod h1:j4pytiNVoe2o6bmDsKpLACNPDBIoEAkihy7loJ1B0CQ=
