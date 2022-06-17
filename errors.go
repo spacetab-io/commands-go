@@ -8,5 +8,5 @@ var (
 	ErrSeedClassNameNotRegistered     = errors.New("seed class name not registered")
 	ErrSeedClassIsNotValid            = errors.New("seed class name not valid")
 	ErrSeedClassNotImplementInterface = errors.New("seed class name not implements commands.SeedInterface")
-	ErrBadContextValue                = errors.New("context value is empty or has wrong type")
+	ErrBadContextValue                = errors.New("context value is empty (not passed as pointer?) or don't implement interface")
 )

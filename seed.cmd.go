@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/spacetab-io/logs-go/v2"
+	"github.com/spacetab-io/commands-go/log"
 	"github.com/spf13/cobra"
 )
 
@@ -69,7 +69,7 @@ func seedRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("seedRun getAppSeeder() error: %w", err)
 	}
 
-	log.Trace().Strs("seeds", args).Msg("Running seeder...")
+	log.Debug().Strs("seeds", args).Msg("Running seeder...")
 
 	// Execute only the given method names
 	for _, item := range args {
@@ -93,7 +93,7 @@ func seedRunAll(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("seedRunAll getAppSeeder() error: %w", err)
 	}
 
-	log.Trace().Msg("Running all seeder...")
+	log.Debug().Msg("Running all seeder...")
 
 	// We are looping over the method on a Seeder struct
 	for _, seed := range s.GetMethods() {

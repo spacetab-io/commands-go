@@ -7,12 +7,13 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/log/zerologadapter"
+	"github.com/jackc/pgx/v4/log/zapadapter"
 	"github.com/jackc/pgx/v4/stdlib"
 	"github.com/pressly/goose"
+	"github.com/spacetab-io/commands-go/log"
 	"github.com/spacetab-io/configuration-go/stage"
-	cfgstructs "github.com/spacetab-io/configuration-structs-go"
-	log "github.com/spacetab-io/logs-go/v2"
+	"github.com/spacetab-io/configuration-structs-go/v2/contracts"
+	log2 "github.com/spacetab-io/logs-go/v3"
 	"github.com/spf13/cobra"
 )
 
@@ -64,7 +65,7 @@ func migrate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf(CmdErrStrFormat, method, "getConfig", err)
 	}
 
-	if err := log.Init(appStage.String(), logCfg, appInfo.GetAlias(), appInfo.GetVersion(), os.Stdout); err != nil {
+	if err := log.Init(logCfg, appStage.String(), appInfo.GetAlias(), appInfo.GetVersion()); err != nil {
 		log.Error().Err(err).Send()
 
 		return fmt.Errorf(CmdErrStrFormat, method, "log.Init", err)
@@ -76,19 +77,20 @@ func migrate(cmd *cobra.Command, args []string) error {
 
 	log.Debug().Str("command", command).Strs("command args", args[0:]).Msg("run migrate command")
 
-	cfg, err := pgx.ParseConfig(dbCfg.GetDSN())
+	pgxConfig, err := pgx.ParseConfig(dbCfg.GetDSN())
 	if err != nil {
 		log.Error().Err(err).Str("dsn", dbCfg.GetMigrationDSN()).Msg("fail to parse config")
 
 		return fmt.Errorf(CmdErrStrFormat, method, "ParseConfig", err)
 	}
 
-	cfg.Logger = zerologadapter.NewLogger(log.Logger().With().CallerWithSkipFrameCount(4).Logger()) // nolint:gomnd
-	cfg.PreferSimpleProtocol = true
+	pgxConfig.Logger = zapadapter.NewLogger(log.GetLogger())
+	pgxConfig.RuntimeParams = map[string]string{"standard_conforming_strings": "on"}
+	pgxConfig.PreferSimpleProtocol = true
 
-	stdlib.RegisterConnConfig(cfg)
+	stdlib.RegisterConnConfig(pgxConfig)
 
-	db := stdlib.OpenDB(*cfg)
+	db := stdlib.OpenDB(*pgxConfig)
 
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("migrate SetDialect error: %w", err)
@@ -96,6 +98,8 @@ func migrate(cmd *cobra.Command, args []string) error {
 
 	// set migrations table from cfg
 	goose.SetTableName(dbCfg.GetMigrationsTableName())
+
+	goose.SetLogger(log2.NewGooseLogger(log.Logger))
 
 	if err := db.Ping(); err != nil {
 		log.Error().Err(err).Str("dsn", dbCfg.GetDSN()).Msg("fail to ping database")
@@ -127,8 +131,8 @@ func migrate(cmd *cobra.Command, args []string) error {
 	return goose.Run(command, db, dbCfg.GetMigrationsPath(), arguments...)
 }
 
-func checkInit(cfg cfgstructs.DatabaseCfgInterface, db *sql.DB) error {
-	log.Trace().Msg("detect goose table exists")
+func checkInit(cfg contracts.DatabaseCfgInterface, db *sql.DB) error {
+	log.Debug().Msg("detect goose table exists")
 
 	var t *string
 
@@ -154,47 +158,47 @@ INSERT INTO %s.%s ("version_id", "is_applied", "tstamp") VALUES ('0', 't', NOW()
 	)
 
 	if t == nil {
-		log.Trace().Msg("goose table doesn't exists. let's create it")
+		log.Debug().Msg("goose table doesn't exists. let's create it")
 
 		if _, err := db.Exec(create); err != nil {
 			return fmt.Errorf("checkInit db.Exec error: %w", err)
 		}
 
-		log.Trace().Msg("goose table now exists. continue")
+		log.Debug().Msg("goose table now exists. continue")
 
 		return nil
 	}
 
-	log.Trace().Msg("goose table exists. go forward")
+	log.Debug().Msg("goose table exists. go forward")
 
 	return nil
 }
 
 func getConfigs(ctx context.Context) (
 	stage.Interface,
-	cfgstructs.DatabaseCfgInterface,
-	log.Config,
-	cfgstructs.ApplicationInfoCfgInterface,
+	contracts.DatabaseCfgInterface,
+	contracts.LogsCfgInterface,
+	contracts.ApplicationInfoCfgInterface,
 	error,
 ) {
 	appStage, ok := ctx.Value(CommandContextCfgKeyStage).(stage.Interface)
 	if !ok {
-		return nil, nil, log.Config{}, nil, fmt.Errorf("%w: stage name (cfg.envStage)", ErrBadContextValue)
+		return nil, nil, nil, nil, fmt.Errorf("%w: stage name (cfg.envStage)", ErrBadContextValue)
 	}
 
-	dbCfg, ok := ctx.Value(CommandContextCfgKeyDB).(cfgstructs.DatabaseCfgInterface)
+	logCfg, ok := ctx.Value(CommandContextCfgKeyLog).(contracts.LogsCfgInterface)
 	if !ok {
-		return nil, nil, log.Config{}, nil, fmt.Errorf("%w: database config (cfg.db)", ErrBadContextValue)
+		return nil, nil, nil, nil, fmt.Errorf("%w: log config (cfg.log)", ErrBadContextValue)
 	}
 
-	logCfg, ok := ctx.Value(CommandContextCfgKeyLog).(log.Config)
+	appInfoCfg, ok := ctx.Value(CommandContextCfgKeyAppInfo).(contracts.ApplicationInfoCfgInterface)
 	if !ok {
-		return nil, nil, log.Config{}, nil, fmt.Errorf("%w: log config (cfg.log)", ErrBadContextValue)
+		return nil, nil, nil, nil, fmt.Errorf("%w: app info config (cfg.appInfo)", ErrBadContextValue)
 	}
 
-	appInfoCfg, ok := ctx.Value(CommandContextCfgKeyAppInfo).(cfgstructs.ApplicationInfoCfgInterface)
+	dbCfg, ok := ctx.Value(CommandContextCfgKeyDB).(contracts.DatabaseCfgInterface)
 	if !ok {
-		return nil, nil, log.Config{}, nil, fmt.Errorf("%w: app info config (cfg.appInfo)", ErrBadContextValue)
+		return nil, nil, nil, nil, fmt.Errorf("%w: database config (cfg.db)", ErrBadContextValue)
 	}
 
 	return appStage, dbCfg, logCfg, appInfoCfg, nil

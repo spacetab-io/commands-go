@@ -1,7 +1,7 @@
 package commands
 
 import (
-	cfgstructs "github.com/spacetab-io/configuration-structs-go"
+	cfgstructs "github.com/spacetab-io/configuration-structs-go/v2"
 )
 
 type SeedInterface interface {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	cfgstructs "github.com/spacetab-io/configuration-structs-go"
+	cfgstructs "github.com/spacetab-io/configuration-structs-go/v2"
 )
 
 type Seeder struct {
