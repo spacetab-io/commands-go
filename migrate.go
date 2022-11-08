@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/log/zapadapter"
-	"github.com/jackc/pgx/v4/stdlib"
+	zapadapter "github.com/jackc/pgx-zap"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/pressly/goose"
 	"github.com/spacetab-io/commands-go/log"
 	"github.com/spacetab-io/configuration-go/stage"
 	"github.com/spacetab-io/configuration-structs-go/v2/contracts"
 	log2 "github.com/spacetab-io/logs-go/v3"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 const (
@@ -84,9 +86,16 @@ func migrate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf(CmdErrStrFormat, method, "ParseConfig", err)
 	}
 
-	pgxConfig.Logger = zapadapter.NewLogger(log.GetLogger())
+	trLevel, err := tracelog.LogLevelFromString(log.Logger.Level.String())
+	if err != nil {
+		return fmt.Errorf("log level from string error: %w", err)
+	}
+
+	pgxConfig.Tracer = &tracelog.TraceLog{
+		Logger:   zapadapter.NewLogger(log.GetLogger().WithOptions(zap.WithCaller(false))),
+		LogLevel: trLevel,
+	}
 	pgxConfig.RuntimeParams = map[string]string{"standard_conforming_strings": "on"}
-	pgxConfig.PreferSimpleProtocol = true
 
 	stdlib.RegisterConnConfig(pgxConfig)
 
@@ -117,7 +126,7 @@ func migrate(cmd *cobra.Command, args []string) error {
 
 	var arguments []string
 
-	// nolint:gomnd
+	//nolint:gomnd
 	if len(args) > 3 {
 		arguments = append(arguments, args[3:]...)
 	}
@@ -128,7 +137,11 @@ func migrate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("migrate checkInit error: %w", err)
 	}
 
-	return goose.Run(command, db, dbCfg.GetMigrationsPath(), arguments...)
+	if err := goose.Run(command, db, dbCfg.GetMigrationsPath(), arguments...); err != nil {
+		return fmt.Errorf("goose run error: %w", err)
+	}
+
+	return nil
 }
 
 func checkInit(cfg contracts.DatabaseCfgInterface, db *sql.DB) error {
@@ -143,7 +156,7 @@ func checkInit(cfg contracts.DatabaseCfgInterface, db *sql.DB) error {
 		return fmt.Errorf("checkInit db.QueryRow error: %w", err)
 	}
 
-	//nolint: lll
+	//nolint:lll,gosec // lll – for pretty view, gosec – for simplicity in query building
 	create := fmt.Sprintf(
 		`
 CREATE SEQUENCE IF NOT EXISTS %s_id_seq;
@@ -174,6 +187,7 @@ INSERT INTO %s.%s ("version_id", "is_applied", "tstamp") VALUES ('0', 't', NOW()
 	return nil
 }
 
+//nolint:ireturn // it is proxy-method than returns interfaces
 func getConfigs(ctx context.Context) (
 	stage.Interface,
 	contracts.DatabaseCfgInterface,

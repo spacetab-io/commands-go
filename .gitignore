@@ -3,3 +3,4 @@ vendor
 bin
 .golangci*.yml
 linter.mk
+tests.mk
